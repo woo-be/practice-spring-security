@@ -1,0 +1,10 @@
+jwt:
+  secretKey: ahwerfilu18234h97erfhuni2rj89erfun8823r0uj89erfuije4ruj89345gj89sdfguino234rj890wedu934r02035y92h9
+
+  access:
+    expiration: 3600000 # 1시간(60분) (1000L(ms -> s) * 60L(s -> m) * 60L(m -> h))
+    header: Authorization
+
+  refresh:
+    expiration: 1209600000 #  (1000L(ms -> s) * 60L(s -> m) * 60L(m -> h) * 24L(h -> 하루) * 14(2주))
+    header: Authorization-refresh
