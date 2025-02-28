@@ -2,22 +2,25 @@ package com.practice.jwt.filter;
 
 import com.practice.domain.user.User;
 import com.practice.domain.user.repository.UserRepository;
+import com.practice.jwt.authentication.AccessTokenAuthenticationToken;
 import com.practice.jwt.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.core.authority.mapping.NullAuthoritiesMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
 
 /**
  * Jwt 인증 필터
@@ -40,13 +43,16 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final AuthenticationManager authenticationManager;
 
     private GrantedAuthoritiesMapper authoritiesMapper = new NullAuthoritiesMapper();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        log.info("JwtAuthenticationProcessingFilter start");
         if (request.getRequestURI().equals(NO_CHECK_URL)) {
             filterChain.doFilter(request, response); // "/login" 요청이 들어오면, 다음 필터 호출
+            log.info("JwtAuthenticationProcessingFilter end");
             return; // return으로 이후 현재 필터 진행 막기 (안해주면 아래로 내려가서 계속 필터 진행시킴)
         }
 
@@ -62,7 +68,10 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
         // RefreshToken까지 보낸 것이므로 리프레시 토큰이 DB의 리프레시 토큰과 일치하는지 판단 후,
         // 일치한다면 AccessToken을 재발급해준다.
         if (refreshToken != null) {
+            log.info("refreshToken is not null");
             checkRefreshTokenAndReIssueAccessToken(response, refreshToken);
+            filterChain.doFilter(request, response);
+            log.info("JwtAuthenticationProcessingFilter end");
             return; // RefreshToken을 보낸 경우에는 AccessToken을 재발급 하고 인증 처리는 하지 않게 하기위해 바로 return으로 필터 진행 막기
         }
 
@@ -70,6 +79,7 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
         // AccessToken이 없거나 유효하지 않다면, 인증 객체가 담기지 않은 상태로 다음 필터로 넘어가기 때문에 403 에러 발생
         // AccessToken이 유효하다면, 인증 객체가 담긴 상태로 다음 필터로 넘어가기 때문에 인증 성공
         if (refreshToken == null) {
+            log.info("refreshToken is null");
             checkAccessTokenAndAuthentication(request, response, filterChain);
         }
     }
@@ -85,7 +95,8 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
         userRepository.findByRefreshToken(refreshToken)
             .ifPresent(user -> {
                 String reIssuedRefreshToken = reIssueRefreshToken(user);
-                jwtService.sendAccessAndRefreshToken(response, jwtService.createAccessToken(user.getEmail()),
+                String accessToken = jwtService.createAccessToken(user.getEmail());
+                jwtService.sendAccessAndRefreshToken(response, accessToken,
                     reIssuedRefreshToken);
             });
     }
@@ -113,13 +124,30 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
     public void checkAccessTokenAndAuthentication(HttpServletRequest request, HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
         log.info("Call checkAccessTokenAndAuthentication()");
-        jwtService.extractAccessToken(request)
-            .filter(jwtService::isTokenValid)
-            .ifPresent(accessToken -> jwtService.extractEmail(accessToken)
-                .ifPresent(email -> userRepository.findByEmail(email)
-                    .ifPresent(this::saveAuthentication))); // .ifPresent(user -> saveAuthentication(user))
+//        jwtService.extractAccessToken(request)
+//            .filter(jwtService::isTokenValid)
+//            .ifPresent(accessToken -> jwtService.extractEmail(accessToken)
+//                .ifPresent(email -> userRepository.findByEmail(email)
+//                    .ifPresent(this::saveAuthentication))); // .ifPresent(user -> saveAuthentication(user));
 
-        filterChain.doFilter(request, response);
+        try {
+            String accessToken = jwtService.extractAccessToken(request).orElse("");
+            log.info("accessToken: {}", accessToken);
+
+            if (StringUtils.hasText(accessToken)) {
+
+                AccessTokenAuthenticationToken authToken = new AccessTokenAuthenticationToken(accessToken);
+                Authentication authentication = authenticationManager.authenticate(authToken);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        } catch (AuthenticationException e) {
+            log.info("accessToken authentication fail!!!");
+            SecurityContextHolder.clearContext();
+        }
+
+        filterChain.doFilter(request,response);
+
+        log.info("JwtAuthenticationProcessingFilter end");
     }
 
     /**
@@ -138,20 +166,21 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
      * setAuthentication()을 이용하여 위에서 만든 Authentication 객체에 대한 인증 허가 처리
      */
     public void saveAuthentication(User myUser) {
-        String password = myUser.getPassword();
-//        if (password == null) { // 소셜 로그인 유저의 비밀번호 임의로 설정 하여 소셜 로그인 유저도 인증 되도록 설정
-//            password = PasswordUtil.generateRandomPassword();
-//        }
 
         UserDetails userDetailsUser = org.springframework.security.core.userdetails.User.builder()
             .username(myUser.getEmail())
-            .password(password)
+            .password("") // 이미 jwt 검증이 완료된, 즉 인증된 사용자이므로 패스워드는 설정하지 않음.
             .roles(myUser.getRole().name())
             .build();
 
+        /**
+         * This constructor should only be used by AuthenticationManager or AuthenticationProvider implementations
+         * that are satisfied with producing a trusted (i. e. isAuthenticated() = true) authentication token.
+         */
         Authentication authentication =
             new UsernamePasswordAuthenticationToken(userDetailsUser, null,
                 authoritiesMapper.mapAuthorities(userDetailsUser.getAuthorities()));
+        // 이미 인증된 사용자, 인증된 사용자에 대한 authentication을 생성하는 생성자 사용.
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
