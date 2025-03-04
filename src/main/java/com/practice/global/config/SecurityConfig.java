@@ -21,10 +21,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 /**
  * 인증은 CustomJsonUsernamePasswordAuthenticationFilter에서 authenticate()로 인증된 사용자로 처리
@@ -53,15 +56,16 @@ public class SecurityConfig {
                 FrameOptionsConfig::disable)) // x-frame-options disable
             // .headers().frameOptions().disable()
             // 세션 사용하지 않으므로 STATELESS로 설정
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+//            .sessionManagement(session -> session
+//                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .sessionManagement(session -> session.maximumSessions(5).sessionRegistry(sessionRegistry()))
             // 아이콘, css, js 관련
             // 기본 페이지, css, image, js 하위 폴더에 있는 자료들은 모두 접근 가능, h2-console에 접근 가능
             .authorizeHttpRequests(authorize ->
                 authorize
                     .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/favicon.ico",
                         "/h2-console/**").permitAll()
-                    .requestMatchers("/sign-up").permitAll()
+                    .requestMatchers("/sign-up", "/sessions").permitAll()
                     .anyRequest().authenticated());
         //== 소셜 로그인 설정 ==//
 //            .oauth2Login()
@@ -106,7 +110,7 @@ public class SecurityConfig {
      */
     @Bean
     public LoginSuccessHandler loginSuccessHandler() {
-        return new LoginSuccessHandler(jwtService, userRepository);
+        return new LoginSuccessHandler(jwtService, userRepository, sessionRegistry());
     }
 
     /**
@@ -140,4 +144,15 @@ public class SecurityConfig {
 //        JwtAuthenticationProcessingFilter jwtAuthenticationFilter = new JwtAuthenticationProcessingFilter(jwtService, userRepository);
 //        return jwtAuthenticationFilter;
 //    }
+
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+
+    @Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
+
 }

@@ -35,8 +35,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *                              인증 성공 처리는 하지 않고 실패 처리
  *
  */
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
 
     private static final String NO_CHECK_URL = "/login"; // "/login"으로 들어오는 요청은 Filter 작동 X
@@ -132,7 +132,11 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
 
         try {
             String accessToken = jwtService.extractAccessToken(request).orElse("");
-            log.info("accessToken: {}", accessToken);
+            if (accessToken.isBlank()) {
+                log.info("*** There is no accessToken ***");
+            } else {
+            log.info("*** accessToken: {} ***", accessToken);
+            }
 
             if (StringUtils.hasText(accessToken)) {
 

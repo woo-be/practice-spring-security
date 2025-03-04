@@ -7,7 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 
 public class AccessTokenAuthenticationToken extends AbstractAuthenticationToken {
 
-    private String accessToken;
+    private final String accessToken;
     private Object principal;
 
     public AccessTokenAuthenticationToken(String accessToken) {

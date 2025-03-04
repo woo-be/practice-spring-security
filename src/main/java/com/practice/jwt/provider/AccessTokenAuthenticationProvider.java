@@ -4,15 +4,12 @@ import com.practice.domain.user.User;
 import com.practice.domain.user.repository.UserRepository;
 import com.practice.jwt.authentication.AccessTokenAuthenticationToken;
 import com.practice.jwt.service.JwtService;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
 
 @Slf4j
 @RequiredArgsConstructor

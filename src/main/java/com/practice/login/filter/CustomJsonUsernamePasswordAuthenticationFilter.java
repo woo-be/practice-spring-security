@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,6 +20,7 @@ import org.springframework.util.StreamUtils;
  * Login만 처리하도록 설정한 부분만 다르다. (커스텀 API용 필터 구현) Username : 회원 아이디 -> email로 설정 "/login" 요청 왔을 때 JSON
  * 값을 매핑 처리하는 필터
  */
+@Slf4j
 public class CustomJsonUsernamePasswordAuthenticationFilter extends
     AbstractAuthenticationProcessingFilter {
 
@@ -55,6 +57,8 @@ public class CustomJsonUsernamePasswordAuthenticationFilter extends
     public Authentication attemptAuthentication(HttpServletRequest request,
         HttpServletResponse response)
         throws IOException, AuthenticationException {
+
+        log.info("Call CustomJsonUsernamePasswordAuthenticationFilter :: attemptAuthentication");
 
         if (request.getContentType() == null || !request.getContentType().equals(CONTENT_TYPE)) {
             throw new AuthenticationServiceException(

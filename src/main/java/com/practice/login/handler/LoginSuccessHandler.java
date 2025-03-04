@@ -5,10 +5,12 @@ import com.practice.jwt.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 
@@ -18,6 +20,7 @@ public class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final SessionRegistry sessionRegistry;
 
     @Value("${jwt.access.expiration}")
     private String accessTokenExpiration;
@@ -46,6 +49,13 @@ public class LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
         log.info("login success. email : {}", email);
         log.info("login success. AccessToken : {}", accessToken);
         log.info("accessTokenExpiration : {}", accessTokenExpiration);
+
+        List<Object> principals = sessionRegistry.getAllPrincipals();
+        if (principals.isEmpty()) {
+            log.info("*** There is no principal ***");
+        } else {
+            log.info("*** principals : {} ***", principals);
+        }
     }
 
     private String extractUsername(Authentication authentication) {
