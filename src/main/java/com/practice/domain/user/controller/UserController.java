@@ -59,8 +59,9 @@ public class UserController {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        SecurityContext securityContext = (SecurityContext) session.getAttribute(
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        /*(SecurityContext) session.getAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);*/
 
         if (securityContext != null) {
             log.info("securityContext type: {}", securityContext.getClass().getSimpleName());

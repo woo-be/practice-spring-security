@@ -56,9 +56,9 @@ public class SecurityConfig {
                 FrameOptionsConfig::disable)) // x-frame-options disable
             // .headers().frameOptions().disable()
             // 세션 사용하지 않으므로 STATELESS로 설정
-//            .sessionManagement(session -> session
-//                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-            .sessionManagement(session -> session.maximumSessions(5).sessionRegistry(sessionRegistry()))
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+//            .sessionManagement(session -> session.maximumSessions(5).sessionRegistry(sessionRegistry()))
             // 아이콘, css, js 관련
             // 기본 페이지, css, image, js 하위 폴더에 있는 자료들은 모두 접근 가능, h2-console에 접근 가능
             .authorizeHttpRequests(authorize ->
@@ -99,9 +99,9 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager() {
         DaoAuthenticationProvider daoProvider = new DaoAuthenticationProvider();
-        AccessTokenAuthenticationProvider accessTokenProvider = new AccessTokenAuthenticationProvider(jwtService, userRepository);
         daoProvider.setPasswordEncoder(passwordEncoder());
         daoProvider.setUserDetailsService(loginService);
+        AccessTokenAuthenticationProvider accessTokenProvider = new AccessTokenAuthenticationProvider(jwtService, userRepository);
         return new ProviderManager(Arrays.asList(daoProvider, accessTokenProvider));
     }
 
@@ -150,9 +150,9 @@ public class SecurityConfig {
         return new SessionRegistryImpl();
     }
 
-    @Bean
-    public HttpSessionEventPublisher httpSessionEventPublisher() {
-        return new HttpSessionEventPublisher();
-    }
+//    @Bean
+//    public HttpSessionEventPublisher httpSessionEventPublisher() {
+//        return new HttpSessionEventPublisher();
+//    }
 
 }
