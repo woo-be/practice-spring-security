@@ -9,6 +9,9 @@ import com.practice.login.filter.CustomJsonUsernamePasswordAuthenticationFilter;
 import com.practice.login.handler.LoginFailureHandler;
 import com.practice.login.handler.LoginSuccessHandler;
 import com.practice.login.service.LoginService;
+import com.practice.oauth.handler.OAuth2LoginFailureHandler;
+import com.practice.oauth.handler.OAuth2LoginSuccessHandler;
+import com.practice.oauth.service.CustomOAuth2UserService;
 import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -42,9 +45,9 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
-//    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-//    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
-//    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -66,12 +69,17 @@ public class SecurityConfig {
                     .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/favicon.ico",
                         "/h2-console/**").permitAll()
                     .requestMatchers("/sign-up", "/sessions").permitAll()
-                    .anyRequest().authenticated());
+                    .anyRequest().authenticated())
         //== 소셜 로그인 설정 ==//
 //            .oauth2Login()
 //            .successHandler(oAuth2LoginSuccessHandler) // 동의하고 계속하기를 눌렀을 때 Handler 설정
 //            .failureHandler(oAuth2LoginFailureHandler) // 소셜 로그인 실패 시 핸들러 설정
 //            .userInfoEndpoint().userService(customOAuth2UserService); // customUserService 설정
+            .oauth2Login(oauth2Login ->
+                oauth2Login
+                    .successHandler(oAuth2LoginSuccessHandler)
+                    .failureHandler(oAuth2LoginFailureHandler)
+                    .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService)));
 
         // 원래 스프링 시큐리티 필터 순서가 LogoutFilter 이후에 로그인 필터 동작
         // 따라서, LogoutFilter 이후에 우리가 만든 필터 동작하도록 설정
