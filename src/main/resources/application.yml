@@ -1,5 +1,11 @@
 server:
   port: 8080 # 내장 톰캣 포트번호
+  error:
+#    path: /error
+    include-excep tion: true
+    include-stacktrace: always
+#    WhiteLabel:
+#      enabled: false
 
 spring:
 
@@ -34,4 +40,6 @@ spring:
 
 logging:
   level:
-    org.springframework.security: DEBUG
+    org:
+      springframework:
+        security: DEBUG

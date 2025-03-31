@@ -30,7 +30,6 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
-import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 /**
  * 인증은 CustomJsonUsernamePasswordAuthenticationFilter에서 authenticate()로 인증된 사용자로 처리
@@ -67,7 +66,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize ->
                 authorize
                     .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/favicon.ico",
-                        "/h2-console/**").permitAll()
+                        "/h2-console/**", "/index.html", "/error").permitAll()
                     .requestMatchers("/sign-up", "/sessions").permitAll()
                     .anyRequest().authenticated())
         //== 소셜 로그인 설정 ==//
